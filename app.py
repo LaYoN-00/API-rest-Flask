@@ -1,3 +1,5 @@
+#ACTUALIZACION v1.08.07.2024
+
 from flask import Flask, jsonify, request, json
 from flask_mysqldb import MySQL
 from flask_cors import CORS
@@ -7,6 +9,9 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import accuracy_score
+
+import mysql.connector
+import spacy
 
 app=Flask(__name__)
 conexion=MySQL(app)
@@ -130,8 +135,61 @@ def ArbolDecisionGlobal():
     except Exception as ex:
         return "ERROR"
     
-@app.route('/api/arbol-decision/local',methods=['GET'])
+# RUTAS PARA USAR EL CHATBOT
+@app.route('/api/chatbot',methods=['POST'])
+def conversacionBot():
+    try:
+        nlp = spacy.load("es_core_news_sm")
 
+        def enviarRespuesta(intent):
+            if intent!="unknown":
+                respuesta=responsesGlobal(intent)
+            else:
+                respuesta="No se como responder esto..."
+            return respuesta
+        
+        def enviarPeticion(text):
+            # Procesa el texto
+            doc = nlp(text.lower())
+            #print(doc)
+            for token in doc:
+                datos=KeysWordsGlobal(token.text)
+                if datos!="unknown":
+                    return datos
+            return "unknown"
+        
+        def procesarTexto(text):
+            intent=enviarPeticion(text)
+            respuesta=enviarRespuesta(intent)
+            return respuesta
+        
+        print(request.json)
+        texto = request.json['peticion']
+        respuesta = procesarTexto(texto)
+        return jsonify({"Bot: ":respuesta})
+
+    except Exception as ex:
+        return "ERROR"
+
+def responsesGlobal(clave):
+        cursor=conexion.connection.cursor()
+        sql = "SELECT valor FROM responses WHERE clave = '{0}'".format(clave)
+        cursor.execute(sql)
+        miResultado = cursor.fetchall()
+        if miResultado:
+            valor = miResultado[0][0]
+        return valor
+
+def KeysWordsGlobal(valor):
+        cursor=conexion.connection.cursor()
+        sql = "SELECT clave FROM keywords WHERE valor = '{0}'".format(valor)
+        cursor.execute(sql)
+        miResultado = cursor.fetchall()
+        if miResultado:
+            valor = miResultado[0][0]
+        else:
+            valor = "unknown"
+        return valor
 
 def pagina_no_encontada(error):
     return "<h1>PAGINA NO ENCONTRADA...</h1>",404

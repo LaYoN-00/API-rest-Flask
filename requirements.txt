@@ -1,6 +1,6 @@
 flask==3.0.3
 flask-mysqldb==2.0.0
 flask-cors==4.0.1
-
-pip install pandas
-pip install scikit-learn
+pandas==2.2.2
+scikit-learn==1.5.0
+spacy==3.7.5
